@@ -2,14 +2,14 @@ use jni::objects::JClass;
 use jni::sys::jlong;
 use jni::JNIEnv;
 use std::time::Duration;
-use tokio::runtime::Runtime;
+use tokio::runtime::{Builder, Runtime};
 
 #[no_mangle]
 pub extern "system" fn Java_org_apache_arrow_datafusion_TokioRuntime_createTokioRuntime(
     _env: JNIEnv,
     _class: JClass,
 ) -> jlong {
-    if let Ok(runtime) = Runtime::new() {
+    if let Ok(runtime) = Builder::new_current_thread().build() {
         // println!("successfully created tokio runtime");
         Box::into_raw(Box::new(runtime)) as jlong
     } else {

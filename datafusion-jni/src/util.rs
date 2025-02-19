@@ -1,10 +1,20 @@
 use std::error::Error;
-
+use datafusion::arrow::array::RecordBatch;
 use jni::objects::JObject;
 use jni::sys::jlong;
 use jni::JNIEnv;
 
 /// Set error message from a result using a Consumer<String> Java callback
+pub fn set_error_message_batch<Err: Error>(env: &mut JNIEnv, callback: JObject, result: Result<Vec<RecordBatch>, Err>) {
+    if result.is_err() {
+        set_error_message(env, callback, Result::Err(result.unwrap_err()));
+    } else {
+        let res : Result<(), Err> = Result::Ok(());
+        set_error_message(env, callback, res);
+    }
+
+}
+
 pub fn set_error_message<Err: Error>(env: &mut JNIEnv, callback: JObject, result: Result<(), Err>) {
     match result {
         Ok(_) => {
@@ -15,7 +25,7 @@ pub fn set_error_message<Err: Error>(env: &mut JNIEnv, callback: JObject, result
                 "(Ljava/lang/Object;)V",
                 &[(&err_message).into()],
             )
-            .expect("Failed to call error handler with null message");
+                .expect("Failed to call error handler with null message");
         }
         Err(err) => {
             let err_message = env
@@ -27,7 +37,7 @@ pub fn set_error_message<Err: Error>(env: &mut JNIEnv, callback: JObject, result
                 "(Ljava/lang/Object;)V",
                 &[(&err_message).into()],
             )
-            .expect("Failed to call error handler with error message");
+                .expect("Failed to call error handler with error message");
         }
     };
 }

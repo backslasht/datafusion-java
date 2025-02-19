@@ -142,6 +142,6 @@ pub extern "system" fn Java_org_apache_arrow_datafusion_SessionContexts_createSe
     config: jlong,
 ) -> jlong {
     let config = unsafe { &*(config as *const SessionConfig) };
-    let context = SessionContext::with_config(config.clone());
+    let context = SessionContext::new_with_config(config.clone());
     Box::into_raw(Box::new(context)) as jlong
 }

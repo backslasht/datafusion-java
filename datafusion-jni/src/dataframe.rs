@@ -1,5 +1,5 @@
 use arrow::ipc::writer::FileWriter;
-use datafusion::dataframe::DataFrame;
+use datafusion::dataframe::{DataFrame, DataFrameWriteOptions};
 use jni::objects::{JClass, JObject, JString};
 use jni::sys::jlong;
 use jni::JNIEnv;
@@ -8,7 +8,7 @@ use std::io::BufWriter;
 use std::io::Cursor;
 use tokio::runtime::Runtime;
 
-use crate::util::{set_error_message, set_object_result};
+use crate::util::{set_error_message, set_error_message_batch, set_object_result};
 
 #[no_mangle]
 pub extern "system" fn Java_org_apache_arrow_datafusion_DataFrames_collectDataframe(
@@ -115,8 +115,8 @@ pub extern "system" fn Java_org_apache_arrow_datafusion_DataFrames_writeParquet(
         .expect("Couldn't get path as string!")
         .into();
     runtime.block_on(async {
-        let r = dataframe.clone().write_parquet(&path, None).await;
-        set_error_message(&mut env, callback, r);
+        let r = dataframe.clone().write_parquet(&path, DataFrameWriteOptions::new(), None).await;
+        set_error_message_batch(&mut env, callback, r);
     });
 }
 
@@ -136,8 +136,8 @@ pub extern "system" fn Java_org_apache_arrow_datafusion_DataFrames_writeCsv(
         .expect("Couldn't get path as string!")
         .into();
     runtime.block_on(async {
-        let r = dataframe.clone().write_csv(&path).await;
-        set_error_message(&mut env, callback, r);
+        let r = dataframe.clone().write_csv(&path, DataFrameWriteOptions::new(), None).await;
+        set_error_message_batch(&mut env, callback, r);
     });
 }
 
