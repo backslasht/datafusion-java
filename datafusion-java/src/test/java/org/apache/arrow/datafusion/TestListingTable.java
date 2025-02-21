@@ -16,8 +16,8 @@ import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.BigIntVector;
 import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.VarCharVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.ViewVarCharVector;
 import org.apache.arrow.vector.compression.CompressionCodec;
 import org.apache.arrow.vector.compression.CompressionUtil;
 import org.apache.arrow.vector.compression.NoCompressionCodec;
@@ -380,7 +380,7 @@ public class TestListingTable {
           VectorSchemaRoot root = reader.getVectorSchemaRoot();
           while (reader.loadNextBatch()) {
             BigIntVector idValues = (BigIntVector) root.getVector(0);
-            VarCharVector textValues = (VarCharVector) root.getVector(1);
+            ViewVarCharVector textValues = (ViewVarCharVector) root.getVector(1);
             for (int row = 0; row < root.getRowCount(); ++row, ++globalRow) {
               actualIds.add(idValues.get(row));
               actualText.add(new String(textValues.get(row), StandardCharsets.UTF_8));

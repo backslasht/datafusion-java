@@ -9,3 +9,4 @@ mod session_config;
 mod stream;
 mod table_provider;
 mod util;
+mod parquet_exec;
