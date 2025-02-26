@@ -5,14 +5,16 @@ plugins {
     id 'datafusion.java-conventions'
     id 'com.diffplug.spotless'
     id 'com.google.osdetector'
+    id 'application'
 }
 
 dependencies {
     api 'org.slf4j:slf4j-api:2.0.16'
-    api 'org.apache.arrow:arrow-format:18.0.0'
-    api 'org.apache.arrow:arrow-vector:18.1.0'
-    implementation 'org.apache.arrow:arrow-c-data:18.1.0'
-    runtimeOnly 'org.apache.arrow:arrow-memory-unsafe:18.0.0'
+    // using 17.0.0 to be in sync with OpenSearch
+    api 'org.apache.arrow:arrow-format:17.0.0'
+    api 'org.apache.arrow:arrow-vector:17.0.0'
+    implementation 'org.apache.arrow:arrow-c-data:17.0.0'
+    runtimeOnly 'org.apache.arrow:arrow-memory-unsafe:17.0.0'
     testImplementation 'org.apache.arrow:arrow-compression:14.0.2'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
     testImplementation 'org.apache.hadoop:hadoop-client:3.4.1'
@@ -70,9 +72,14 @@ def extensionMapping = [
 
 tasks.register('copyDevLibrary', Sync) {
     def extension = extensionMapping[osdetector.os]
-    from "${rootDir}/datafusion-jni/target/debug/libdatafusion_jni.$extension"
+    //from "${rootDir}/datafusion-jni/target/debug/libdatafusion_jni.$extension"
+    from "${rootDir}/datafusion-jni/target/release/libdatafusion_jni.$extension"
     into layout.buildDirectory.dir("jni_libs/dev")
-    dependsOn cargoDevBuild
+    dependsOn cargoReleaseBuild
+    //dependsOn cargoDevBuild
+
+    // TODO : Important : switch to dev build by uncommenting the two lines
+    // and vice versa
 }
 
 tasks.named("test") {
@@ -84,6 +91,32 @@ tasks.register('copyBuiltLibrary', Copy) {
     from "${rootDir}/datafusion-jni/target/release/libdatafusion_jni.$extension"
     into layout.buildDirectory.dir("jni_libs/${osdetector.classifier}")
     dependsOn cargoReleaseBuild
+}
+
+// Add at the same level as other top-level configurations
+application {
+    applicationDefaultJvmArgs = [
+            '--add-opens', 'java.base/jdk.internal.misc=ALL-UNNAMED',
+            '--add-opens', 'java.base/java.nio=ALL-UNNAMED',
+
+    ]
+}
+
+tasks.withType(JavaExec) {
+    // flags for faster vector schema root access
+    systemProperty "arrow.enable_unsafe_memory_access", "true"
+    systemProperty "arrow.enable_null_check_for_get", "false"
+}
+
+// Modify your test configuration to include the new flag
+test {
+    def libraryPath = findProperty("JNI_PATH") ?: "$rootDir/datafusion-java/build/jni_libs/dev"
+    jvmArgs += [
+            "-Djava.library.path=$libraryPath",
+            "--add-opens=java.base/java.nio=ALL-UNNAMED",
+            "--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED"
+    ]
+    useJUnitPlatform()
 }
 
 def classifierOsx = 'osx-x86_64'

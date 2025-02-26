@@ -1,7 +1,6 @@
 package org.apache.arrow.datafusion;
 
 import java.util.concurrent.CompletableFuture;
-import org.apache.arrow.memory.BufferAllocator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,6 +18,12 @@ public class ParquetExec extends AbstractProxy {
   static native void exec(
       String parquetPath, String field, int value, long runtime, ObjectResultCallback callback);
 
+  static native void execRange(
+          String parquetPath, String field, long value1, long value2, long runtime, ObjectResultCallback callback);
+
+    static native void execRangeBool(
+            String parquetPath, String field, long value1, long value2, String field1, int value3, long runtime, ObjectResultCallback callback);
+
   /**
    * Executes the query on the given parquet file. Experimental and not fully functional.
    *
@@ -29,7 +34,10 @@ public class ParquetExec extends AbstractProxy {
    * @return result stream
    */
   public CompletableFuture<RecordBatchStream> execute(
-      String parquetPath, String field, int value, BufferAllocator allocator) {
+      String parquetPath,
+      String field,
+      int value,
+      org.apache.arrow.memory.BufferAllocator allocator) {
     CompletableFuture<RecordBatchStream> result = new CompletableFuture<>();
     long runtimePointer = context.getRuntime().getPointer();
     exec(
@@ -46,6 +54,58 @@ public class ParquetExec extends AbstractProxy {
         });
     return result;
   }
+
+  public CompletableFuture<RecordBatchStream> execute(
+          String parquetPath,
+          String field,
+          long value1,
+          long value2,
+          org.apache.arrow.memory.BufferAllocator allocator) {
+    CompletableFuture<RecordBatchStream> result = new CompletableFuture<>();
+    long runtimePointer = context.getRuntime().getPointer();
+    execRange(
+            parquetPath,
+            field,
+            value1,
+            value2,
+            runtimePointer,
+            (errString, streamId) -> {
+              if (ErrorUtil.containsError(errString)) {
+                result.completeExceptionally(new RuntimeException(errString));
+              } else {
+                result.complete(new DefaultRecordBatchStream(context, streamId, allocator));
+              }
+            });
+    return result;
+  }
+
+    public CompletableFuture<RecordBatchStream> execute(
+            String parquetPath,
+            String field,
+            long value1,
+            long value2,
+            String field2,
+            int value3,
+            org.apache.arrow.memory.BufferAllocator allocator) {
+        CompletableFuture<RecordBatchStream> result = new CompletableFuture<>();
+        long runtimePointer = context.getRuntime().getPointer();
+        execRangeBool(
+                parquetPath,
+                field,
+                value1,
+                value2,
+                field2,
+                value3,
+                runtimePointer,
+                (errString, streamId) -> {
+                    if (ErrorUtil.containsError(errString)) {
+                        result.completeExceptionally(new RuntimeException(errString));
+                    } else {
+                        result.complete(new DefaultRecordBatchStream(context, streamId, allocator));
+                    }
+                });
+        return result;
+    }
 
   @Override
   void doClose(long pointer) throws Exception {

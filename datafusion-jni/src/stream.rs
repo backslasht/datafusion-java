@@ -20,18 +20,28 @@ pub extern "system" fn Java_org_apache_arrow_datafusion_DefaultRecordBatchStream
     stream: jlong,
     callback: JObject,
 ) {
+    //let start = std::time::Instant::now();
     let runtime = unsafe { &mut *(runtime as *mut Runtime) };
     let stream = unsafe { &mut *(stream as *mut SendableRecordBatchStream) };
     runtime.block_on(async {
+        //let fetch_start = std::time::Instant::now();
         let next = stream.try_next().await;
+        //let fetch_time = fetch_start.elapsed();
         match next {
             Ok(Some(batch)) => {
+                //let convert_start = std::time::Instant::now();
                 // Convert to struct array for compatibility with FFI
+                //println!("Num rows : {}", batch.num_rows());
                 let struct_array: StructArray = batch.into();
                 let array_data = struct_array.into_data();
                 let mut ffi_array = FFI_ArrowArray::new(&array_data);
+                //let convert_time = convert_start.elapsed();
                 // ffi_array must remain alive until after the callback is called
+               // let callback_start = std::time::Instant::now();
                 set_object_result_ok(&mut env, callback, addr_of_mut!(ffi_array));
+               // let callback_time = callback_start.elapsed();
+                // println!("Fetch: {:?}, Convert: {:?}, Callback: {:?}",
+                //          fetch_time, convert_time, callback_time);
             }
             Ok(None) => {
                 set_object_result_ok(&mut env, callback, 0 as *mut FFI_ArrowSchema);
@@ -40,6 +50,7 @@ pub extern "system" fn Java_org_apache_arrow_datafusion_DefaultRecordBatchStream
                 set_object_result_error(&mut env, callback, &err);
             }
         }
+        //println!("Total time: {:?}", start.elapsed());
     });
 }
 

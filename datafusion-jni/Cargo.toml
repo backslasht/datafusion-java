@@ -21,4 +21,6 @@ crate-type = ["cdylib"]
 
 [profile.release]
 lto = true
+opt-level = 3
 strip = true
+codegen-units = 1   # Single codegen unit for maximum optimization

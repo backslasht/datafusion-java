@@ -47,10 +47,12 @@ class DefaultRecordBatchStream extends AbstractProxy implements RecordBatchStrea
     long runtimePointer = runtime.getPointer();
     long recordBatchStream = getPointer();
     CompletableFuture<Boolean> result = new CompletableFuture<>();
+    //long aa = System.nanoTime();
     next(
         runtimePointer,
         recordBatchStream,
         (errString, arrowArrayAddress) -> {
+          // long st = System.nanoTime();
           if (ErrorUtil.containsError(errString)) {
             result.completeExceptionally(new RuntimeException(errString));
           } else if (arrowArrayAddress == 0) {
@@ -61,12 +63,16 @@ class DefaultRecordBatchStream extends AbstractProxy implements RecordBatchStrea
               ArrowArray arrowArray = ArrowArray.wrap(arrowArrayAddress);
               Data.importIntoVectorSchemaRoot(
                   allocator, arrowArray, vectorSchemaRoot, dictionaryProvider);
+//              System.out.println("Allocated memory" + allocator.getAllocatedMemory());
+//              System.out.println("Debug : " + allocator.toVerboseString());
               result.complete(true);
             } catch (Exception e) {
               result.completeExceptionally(e);
             }
           }
+          //System.out.println("this took : " + (System.nanoTime() - st));
         });
+    //System.out.println("overall this took : " + (System.nanoTime() - aa));
     return result;
   }
 

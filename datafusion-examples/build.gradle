@@ -14,14 +14,22 @@ dependencies {
     implementation project(':datafusion-java')
     implementation 'org.slf4j:slf4j-api:2.0.16'
     implementation 'ch.qos.logback:logback-classic:1.5.12'
-    implementation 'org.apache.arrow:arrow-format:18.0.0'
-    implementation 'org.apache.arrow:arrow-vector:18.1.0'
+    // using 17.0.0 to be in sync with OpenSearch
+    implementation 'org.apache.arrow:arrow-format:17.0.0'
+    implementation 'org.apache.arrow:arrow-vector:17.0.0'
 }
+
 
 application {
     mainClass = 'org.apache.arrow.datafusion.examples.ExampleMain'
     def libraryPath = findProperty("JNI_PATH") ?: "$rootDir/datafusion-java/build/jni_libs/dev"
-    applicationDefaultJvmArgs += ["-Djava.library.path=$libraryPath", "--add-opens=java.base/java.nio=ALL-UNNAMED"]
+    applicationDefaultJvmArgs += ["-Djava.library.path=$libraryPath",
+                                  "--add-opens=java.base/java.nio=ALL-UNNAMED",
+                                  // flags for faster vector schema root access
+                                  "-Darrow.enable_unsafe_memory_access=true",
+                                  "-Darrow.enable_null_check_for_get=false"
+
+    ]
 }
 
 tasks.named("run").configure {
